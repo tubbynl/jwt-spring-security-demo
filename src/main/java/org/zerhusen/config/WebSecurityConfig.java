@@ -17,19 +17,25 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.zerhusen.security.JwtAuthenticationEntryPoint;
 import org.zerhusen.security.JwtAuthenticationTokenFilter;
 
-@SuppressWarnings("SpringJavaAutowiringInspection")
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
-    @Autowired
-    private JwtAuthenticationEntryPoint unauthorizedHandler;
+    private final JwtAuthenticationEntryPoint unauthorizedHandler;
+    private final UserDetailsService userDetailsService;
+    private final JwtAuthenticationTokenFilter jwtAuthenticationTokenFilter;
 
-    @Autowired
-    private UserDetailsService userDetailsService;
+    public WebSecurityConfig(JwtAuthenticationEntryPoint unauthorizedHandler, 
+    		UserDetailsService userDetailsService,
+			JwtAuthenticationTokenFilter jwtAuthenticationTokenFilter) {
+		super();
+		this.unauthorizedHandler = unauthorizedHandler;
+		this.userDetailsService = userDetailsService;
+		this.jwtAuthenticationTokenFilter = jwtAuthenticationTokenFilter;
+	}
 
-    @Autowired
+	@Autowired
     public void configureAuthentication(AuthenticationManagerBuilder authenticationManagerBuilder) throws Exception {
         authenticationManagerBuilder
                 .userDetailsService(this.userDetailsService)
@@ -39,11 +45,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    public JwtAuthenticationTokenFilter authenticationTokenFilterBean() throws Exception {
-        return new JwtAuthenticationTokenFilter();
     }
 
     @Override
@@ -74,8 +75,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .anyRequest().authenticated();
 
         // Custom JWT based security filter
-        httpSecurity
-                .addFilterBefore(authenticationTokenFilterBean(), UsernamePasswordAuthenticationFilter.class);
+        httpSecurity.addFilterBefore(jwtAuthenticationTokenFilter, UsernamePasswordAuthenticationFilter.class);
 
         // disable page caching
         httpSecurity.headers().cacheControl();
